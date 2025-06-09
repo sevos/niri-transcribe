@@ -1,5 +1,23 @@
 # Real-Time Transcription System for Niri
 
+## Current Status: Phase 1 Complete (TICKET-001)
+
+**✅ COMPLETED:**
+- Docker infrastructure with Node.js 20-slim
+- Full audio stack (PipeWire/PulseAudio/ALSA) access
+- Wayland socket mounting for text injection
+- Health check endpoint and monitoring
+- Express server foundation
+
+**📋 NEXT:** TICKET-002 Configuration System
+
+**🔧 VERIFIED WORKING:**
+- Container builds and runs successfully
+- Audio device access confirmed (/dev/snd/*)
+- Wayland socket accessible (wayland-1)
+- Health endpoint responds (http://localhost:3000/health)
+- wtype tool available for text injection
+
 ## Project Overview
 
 A MacOS-like dictation system for Linux Wayland environments, providing real-time speech-to-text transcription with immediate text input to focused windows. The system uses Docker containerization for easy deployment while maintaining deep Wayland integration.
@@ -100,8 +118,9 @@ niri/transcribe/
 - [x] Project directory structure
 - [x] Research analysis and architecture design
 - [x] Simplified implementation strategy
-- [ ] Docker container with audio/Wayland access
-- [ ] Basic configuration system
+- [x] Docker container with audio/Wayland access (TICKET-001)
+- [x] Basic Express server with health check endpoint
+- [ ] Configuration system (TICKET-002)
 
 ### Phase 2: Audio Processing
 - [ ] VAD-based audio chunking service
@@ -149,12 +168,13 @@ niri/transcribe/
 - **Languages**: Auto-detection with fallback to English
 - **Timeout**: 30 seconds per chunk maximum
 
-### Container Configuration
-- **Base Image**: Ubuntu 22.04 with Node.js 20
-- **Audio Access**: `/dev/snd/*` and PulseAudio socket
-- **Wayland Access**: `$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY`
+### Container Configuration ✅ IMPLEMENTED
+- **Base Image**: Node.js 20-slim with Debian Bookworm
+- **Audio Access**: `/dev/snd/*`, PipeWire and PulseAudio sockets
+- **Wayland Access**: `$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY` socket mount
 - **Environment**: Proper audio/display variable forwarding
-- **Security**: Non-root user, minimal privileges
+- **Security**: Non-root user (node:1000), minimal privileges
+- **Health Monitoring**: HTTP endpoint with system diagnostics
 
 ### Key Bindings (Niri Integration)
 - **Activation**: Double Super tap (timing-based detection)
