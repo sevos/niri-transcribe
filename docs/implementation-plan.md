@@ -60,10 +60,11 @@ TICKET-010: Build and Installation Scripts
    - Essential for API key management
    - **Result**: Full JSON schema validation, environment overrides, secure API key handling
 
-3. **TICKET-003: Audio Capture Service** (6 hours)
+3. **TICKET-003: Audio Capture Service** ✅ COMPLETED (6 hours)
    - Blocked by: TICKET-001, TICKET-002
    - Core audio functionality
    - Required for all audio processing
+   - **Result**: Full real-time audio capture with PipeWire/PulseAudio, device discovery, format conversion
 
 ### Phase 2: Audio Processing (Week 2)
 **Priority: High - Audio Pipeline**
@@ -131,14 +132,14 @@ TICKET-010: Build and Installation Scripts
 #### Week 1: Infrastructure Setup ✅ COMPLETED
 - TICKET-001: Docker Infrastructure (4h) ✅ COMPLETED
 - TICKET-002: Configuration System (3h) ✅ COMPLETED
+- TICKET-003: Audio Capture (6h) ✅ COMPLETED
 - TICKET-010: Build Scripts (3h) - *Can start early*
-- **Total: 10 hours (7h completed, 3h remaining)**
+- **Total: 16 hours (13h completed, 3h remaining)**
 
 #### Week 2: Audio Pipeline
-- TICKET-003: Audio Capture (6h)
 - TICKET-004: VAD Implementation (5h)
 - TICKET-007: Text Output (4h) - *Parallel development*
-- **Total: 15 hours**
+- **Total: 9 hours**
 
 #### Week 3: Transcription Services
 - TICKET-005: OpenAI Transcription (4h)
@@ -202,9 +203,14 @@ TICKET-010: Build and Installation Scripts
 - ✅ API key security and masking implemented
 
 ### After Phase 2 (Audio Pipeline)
-- ✅ Audio capture works in container
-- ✅ VAD detects speech accurately
-- ✅ Text injection works in test applications
+- ✅ Audio capture works in container (TICKET-003 COMPLETED)
+- ✅ Real-time audio streaming with PipeWire/PulseAudio
+- ✅ Device discovery and enumeration functional
+- ✅ Audio format conversion utilities working
+- ✅ Circular buffer management and error recovery
+- ✅ Enhanced status reporting with device resolution
+- ⏳ VAD detects speech accurately
+- ⏳ Text injection works in test applications
 
 ### After Phase 3 (Transcription)
 - ✅ OpenAI API integration functional
