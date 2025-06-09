@@ -17,6 +17,12 @@ This project is currently under active development. Core audio capture functiona
 
 **Current Status:** Audio Pipeline Ready (Tickets 001-003 complete)
 
+### 📖 Documentation
+- **[Implementation Roadmap](docs/roadmap.md)** - Detailed project timeline, ticket dependencies, and progress tracking with actual vs estimated completion times
+- **[Technology Stack](docs/technology-stack.md)** - Complete technical architecture overview including Node.js audio pipeline, Docker containerization, and integration strategies  
+- **[Development Tickets](docs/tickets/)** - Individual implementation tickets with detailed specifications, requirements, and acceptance criteria
+- **[QA Testing Plans](docs/qa/)** - Manual testing procedures, performance benchmarks, and verification protocols for implemented features
+
 ### ✅ Completed Features
 - Docker infrastructure with full audio stack access
 - Real-time audio capture service with PipeWire/PulseAudio support
