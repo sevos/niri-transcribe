@@ -2,13 +2,14 @@ services:
   transcribe:
     build: .
     container_name: niri-transcribe
-    user: "1000:1000"
+    user: "1000:29"  # user:audio group for /dev/snd access
     ports:
       - "${PORT:-3000}:3000"
     environment:
       - XDG_RUNTIME_DIR=/tmp
       - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
-      - PULSE_SERVER=/tmp/pulse/native
+      - PULSE_SERVER=unix:/tmp/pulse/native
+      - PIPEWIRE_RUNTIME_DIR=/tmp
       - NODE_ENV=production
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - AUDIO_DEVICE=${AUDIO_DEVICE}
@@ -16,11 +17,12 @@ services:
       - TRANSCRIPTION_PROVIDER=${TRANSCRIPTION_PROVIDER}
       - DEBUG=${DEBUG}
     volumes:
-      # PipeWire socket
-      - /run/user/1000/pipewire-0:/tmp/pipewire-0:ro
-      # PulseAudio fallback
-      - /run/user/1000/pulse:/tmp/pulse:ro
-      # Wayland socket
+      # PipeWire socket (read/write for device access)
+      - /run/user/1000/pipewire-0:/tmp/pipewire-0:rw
+      - /run/user/1000/pipewire-0-manager:/tmp/pipewire-0-manager:rw
+      # PulseAudio fallback (read/write for device access)
+      - /run/user/1000/pulse:/tmp/pulse:rw
+      # Wayland socket for text injection
       - ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:/tmp/${WAYLAND_DISPLAY}:rw
       # Config directory
       - ./config:/app/config:ro

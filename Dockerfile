@@ -4,6 +4,7 @@ FROM node:20-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pipewire \
     pipewire-pulse \
+    wireplumber \
     alsa-utils \
     pulseaudio-utils \
     wtype \
