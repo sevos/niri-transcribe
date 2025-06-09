@@ -1,0 +1,31 @@
+{
+  "audio": {
+    "sampleRate": 16000,
+    "channels": 1,
+    "chunkDuration": 2000,
+    "vadThreshold": 0.01,
+    "silenceTimeout": 10000,
+    "device": "default"
+  },
+  "transcription": {
+    "provider": "auto",
+    "openai": {
+      "model": "whisper-1",
+      "temperature": 0,
+      "language": "en"
+    },
+    "local": {
+      "modelSize": "base",
+      "threads": 4
+    }
+  },
+  "output": {
+    "typeDelay": 10,
+    "punctuationDelay": 100,
+    "debug": false
+  },
+  "server": {
+    "port": 3000,
+    "host": "0.0.0.0"
+  }
+}

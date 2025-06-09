@@ -6,7 +6,7 @@ This document outlines the implementation strategy for the real-time transcripti
 ## Ticket Dependency Tree
 
 ```
-TICKET-001: Docker Infrastructure Setup
+TICKET-001: Docker Infrastructure Setup (@tickets/TICKET-001-docker-infrastructure.md)
 ├── TICKET-002: Configuration System
 ├── TICKET-007: Text Output Service  
 └── TICKET-010: Build and Installation Scripts

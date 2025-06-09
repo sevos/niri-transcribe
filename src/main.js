@@ -2,10 +2,20 @@
 
 const express = require('express');
 const winston = require('winston');
+const config = require('./config');
+
+// Load configuration
+let appConfig;
+try {
+  appConfig = config.load();
+} catch (error) {
+  console.error('Failed to load configuration:', error.message);
+  process.exit(1);
+}
 
 // Configure logging
 const logger = winston.createLogger({
-  level: 'info',
+  level: config.isDebugEnabled() ? 'debug' : 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.json()
@@ -17,7 +27,7 @@ const logger = winston.createLogger({
 
 // Create Express app for health checks
 const app = express();
-const port = 3000;
+const serverConfig = config.getServerConfig();
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -29,6 +39,12 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memoryUsage: process.memoryUsage(),
+    config: {
+      audioDevice: config.get('audio.device'),
+      transcriptionProvider: config.get('transcription.provider'),
+      serverPort: config.get('server.port'),
+      debugEnabled: config.isDebugEnabled()
+    },
     environment: {
       nodeVersion: process.version,
       platform: process.platform,
@@ -41,8 +57,10 @@ app.get('/health', (req, res) => {
 });
 
 // Start the server
-app.listen(port, () => {
-  logger.info(`Niri Transcribe service started on port ${port}`);
+app.listen(serverConfig.port, serverConfig.host, () => {
+  logger.info(`Niri Transcribe service started on ${serverConfig.host}:${serverConfig.port}`);
+  logger.info('Configuration loaded successfully');
+  logger.debug('Full configuration:', appConfig);
   logger.info('Environment check:', {
     waylandDisplay: process.env.WAYLAND_DISPLAY,
     pulseServer: process.env.PULSE_SERVER,

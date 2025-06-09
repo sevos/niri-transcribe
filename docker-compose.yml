@@ -1,17 +1,20 @@
-version: '3.8'
-
 services:
   transcribe:
     build: .
     container_name: niri-transcribe
     user: "1000:1000"
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     environment:
       - XDG_RUNTIME_DIR=/tmp
       - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
       - PULSE_SERVER=/tmp/pulse/native
       - NODE_ENV=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AUDIO_DEVICE=${AUDIO_DEVICE}
+      - VAD_THRESHOLD=${VAD_THRESHOLD}
+      - TRANSCRIPTION_PROVIDER=${TRANSCRIPTION_PROVIDER}
+      - DEBUG=${DEBUG}
     volumes:
       # PipeWire socket
       - /run/user/1000/pipewire-0:/tmp/pipewire-0:ro
