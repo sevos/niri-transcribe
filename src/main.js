@@ -5,6 +5,7 @@ const winston = require('winston');
 const config = require('./config');
 const AudioCaptureService = require('./services/audio-capture');
 const AudioFormatConverter = require('./utils/audio-format');
+const VoiceActivityDetector = require('./services/voice-activity-detector');
 
 // Load configuration
 let appConfig;
@@ -34,6 +35,9 @@ const serverConfig = config.getServerConfig();
 // Initialize audio capture service
 const audioCapture = new AudioCaptureService(appConfig, logger);
 
+// Initialize VAD service
+const vad = new VoiceActivityDetector(appConfig);
+
 // Audio event handlers
 audioCapture.on('started', () => {
   logger.info('Audio capture started successfully');
@@ -48,11 +52,51 @@ audioCapture.on('error', (error) => {
 });
 
 audioCapture.on('audio', (audioData) => {
-  // TODO: Pass audio data to VAD service (TICKET-004)
+  // Pass audio data to VAD service
+  vad.processAudio(audioData);
+  
   if (config.isDebugEnabled()) {
     const rms = AudioFormatConverter.calculateRMS(audioData);
     logger.debug(`Audio data received: ${audioData.length} samples, RMS: ${rms.toFixed(4)}`);
   }
+});
+
+// VAD event handlers
+vad.on('speechStart', (data = {}) => {
+  const reason = data.reason || 'detected';
+  if (reason === 'continued') {
+    logger.debug('Speech chunk split - continuing recording (max 3s duration reached)');
+  } else {
+    logger.debug('Speech detected - recording started');
+  }
+});
+
+vad.on('speechEnd', (chunk) => {
+  const reason = chunk.reason || 'silence';
+  let logData = {
+    reason: reason === 'max_duration' ? 'max_duration_split' : 'natural_end',
+    duration: chunk.duration,
+    samples: chunk.audio.length,
+    timestamp: new Date(chunk.timestamp).toISOString(),
+    continuing: reason === 'max_duration'
+  };
+  
+  if (reason === 'max_duration') {
+    logger.debug('Speech chunk completed - max duration reached (3s)', logData);
+  } else {
+    logger.debug('Speech ended - silence detected', logData);
+  }
+  
+  // TODO: Send chunk to transcription service (TICKET-005/006)
+  if (config.isDebugEnabled()) {
+    const wavBuffer = AudioFormatConverter.float32ToWav(chunk.audio, appConfig.audio.sampleRate);
+    logger.debug(`Generated WAV chunk: ${wavBuffer.length} bytes`);
+  }
+});
+
+vad.on('silenceTimeout', () => {
+  logger.info('Silence timeout reached - 10 seconds without speech');
+  // TODO: Handle silence timeout (e.g., stop recording)
 });
 
 // Health check endpoint
@@ -79,7 +123,8 @@ app.get('/health', async (req, res) => {
         pulseServer: process.env.PULSE_SERVER
       },
       services: {
-        audioCapture: await audioCapture.getStatus()
+        audioCapture: await audioCapture.getDetailedStatus(),
+        vad: vad.getStatus()
       }
     };
     
@@ -119,9 +164,21 @@ app.post('/audio/start', async (req, res) => {
 app.post('/audio/stop', async (req, res) => {
   try {
     await audioCapture.stop();
+    vad.reset(); // Reset VAD when stopping audio
     res.status(200).json({ status: 'stopped' });
   } catch (error) {
     logger.error('Failed to stop audio capture:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add VAD status endpoint
+app.get('/vad/status', (req, res) => {
+  try {
+    const status = vad.getStatus();
+    res.status(200).json(status);
+  } catch (error) {
+    logger.error('Failed to get VAD status:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -151,11 +208,13 @@ app.listen(serverConfig.port, serverConfig.host, async () => {
 process.on('SIGTERM', async () => {
   logger.info('Received SIGTERM, shutting down gracefully');
   await audioCapture.stop();
+  vad.reset();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('Received SIGINT, shutting down gracefully');
   await audioCapture.stop();
+  vad.reset();
   process.exit(0);
 });

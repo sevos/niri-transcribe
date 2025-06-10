@@ -429,19 +429,26 @@ class AudioCaptureService extends EventEmitter {
     return null;
   }
 
-  async getStatus() {
-    const defaultDevice = this.config.audio.device === 'default' ? await this.getDefaultDevice() : null;
-    
+  getStatus() {
+    // Return synchronous status - don't resolve device asynchronously in tests
     return {
       isCapturing: this.isCapturing,
       audioSystem: this.audioSystem,
-      configuredDevice: this.config.audio.device,
-      actualDevice: this.config.audio.device === 'default' ? '@DEFAULT_SOURCE@' : this.config.audio.device,
-      resolvedDevice: defaultDevice,
       bufferLength: this.audioBuffer.length,
       bufferDuration: this.audioBuffer.length / this.config.audio.sampleRate,
       restartCount: this.restartCount,
       processId: this.captureProcess ? this.captureProcess.pid : null
+    };
+  }
+  
+  async getDetailedStatus() {
+    const defaultDevice = this.config.audio.device === 'default' ? await this.getDefaultDevice() : null;
+    
+    return {
+      ...this.getStatus(),
+      configuredDevice: this.config.audio.device,
+      actualDevice: this.config.audio.device === 'default' ? '@DEFAULT_SOURCE@' : this.config.audio.device,
+      resolvedDevice: defaultDevice
     };
   }
 }
