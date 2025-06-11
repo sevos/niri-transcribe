@@ -1,6 +1,6 @@
 # Real-Time Transcription System for Niri
 
-## Current Status: Audio Pipeline Ready (TICKETS 001-003)
+## Current Status: OpenAI Transcription Ready (TICKETS 001-005)
 
 **✅ COMPLETED:**
 - **TICKET-001**: Docker infrastructure with Node.js 20-slim
@@ -20,8 +20,18 @@
 - **TICKET-003**: Error recovery with exponential backoff restart logic
 - **TICKET-003**: Enhanced status reporting with actual device resolution
 - **TICKET-003**: Comprehensive test suite (18 tests) and QA documentation
+- **TICKET-004**: Voice Activity Detection (VAD) implementation
+- **TICKET-004**: Energy-based VAD with adaptive threshold adjustment
+- **TICKET-004**: Real-time speech segmentation and chunk generation (1-3s chunks)
+- **TICKET-004**: Silence detection and ambient noise adaptation
+- **TICKET-004**: Audio chunk metadata with reason codes
+- **TICKET-005**: OpenAI Whisper API transcription service
+- **TICKET-005**: Request queuing and rate limiting with exponential backoff
+- **TICKET-005**: Multi-language support with automatic language detection
+- **TICKET-005**: Transcription manager with service orchestration and fallback
+- **TICKET-005**: Health monitoring and metrics collection
 
-**📋 NEXT:** TICKET-004 VAD (Voice Activity Detection) Implementation
+**📋 NEXT:** TICKET-006 Local Transcription Service Implementation
 
 **🔧 VERIFIED WORKING:**
 - Container builds and runs successfully
@@ -39,6 +49,11 @@
 - **Audio format conversion and circular buffer management**
 - **Device resolution showing actual hardware (e.g., "Yeti" microphone)**
 - **REST API endpoints: /audio/devices, /audio/start, /audio/stop**
+- **VAD energy-based speech detection with adaptive thresholds**
+- **Audio chunk generation (1-3s) with silence detection**
+- **OpenAI Whisper API transcription with automatic language detection**
+- **Transcription manager orchestration with health monitoring**
+- **Request queuing, rate limiting, and exponential backoff retry logic**
 
 **🏗️ DEVELOPMENT PRACTICES:**
 - Always test within docker & docker compose
