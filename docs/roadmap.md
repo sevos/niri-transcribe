@@ -21,6 +21,7 @@ TICKET-003: Audio Capture Service
 TICKET-004: VAD Implementation
 ├── TICKET-005: OpenAI Transcription
 ├── TICKET-006: Local Transcription
+├── TICKET-012: Improved VAD with Sentence Detection
 └── TICKET-008: Main Orchestrator
 
 TICKET-005: OpenAI Transcription
@@ -94,40 +95,46 @@ TICKET-010: Build and Installation Scripts
    - Fallback transcription service
    - Independent of OpenAI service
 
+8. **TICKET-012: Improved VAD with Sentence Boundary Detection** (4.5 hours)
+   - Blocked by: TICKET-004
+   - Enhanced VAD with natural sentence breaks
+   - Improved adaptive threshold calibration
+
 ### Phase 4: Integration (Week 4)
 **Priority: High - System Integration**
 
-8. **TICKET-008: Main Orchestrator** (6 hours)
+9. **TICKET-008: Main Orchestrator** (6 hours)
    - Blocked by: All core services (003-007)
    - Coordinates entire system
    - Critical for system functionality
 
-9. **TICKET-009: Host Activation Script** (4 hours)
-   - Blocked by: TICKET-008
-   - User interface for system
-   - Required for Niri integration
+10. **TICKET-009: Host Activation Script** (4 hours)
+    - Blocked by: TICKET-008
+    - User interface for system
+    - Required for Niri integration
 
 ### Phase 5: Deployment & Testing (Week 5)
 **Priority: Medium - Production Readiness**
 
-10. **TICKET-010: Build and Installation Scripts** (3 hours)
+11. **TICKET-010: Build and Installation Scripts** (3 hours)
     - Blocked by: TICKET-001
     - Can be developed early in parallel
     - Required for easy deployment
 
-11. **TICKET-011: Integration Testing** (5 hours)
+12. **TICKET-011: Integration Testing** (5 hours)
     - Blocked by: TICKET-008, TICKET-009, TICKET-010
     - Validates complete system
     - Essential for production deployment
 
 ## Resource Allocation
 
-### Total Estimated Hours: 43 hours
-- **Foundation**: 13 hours (30%) → **Actual: 1h 7m 19s (91.4% faster)**
-- **Audio Processing**: 9 hours (21%) → **Actual: 45m (91.7% faster)**
-- **Transcription**: 9 hours (21%) → **Actual: 25m (95.4% faster, 1 of 2 tickets complete)**
-- **Integration**: 10 hours (23%)
-- **Deployment**: 2 hours (5%)
+### Total Estimated Hours: 47.5 hours (was 43 hours)
+- **Foundation**: 13 hours (27%) → **Actual: 1h 7m 19s (91.4% faster)**
+- **Audio Processing**: 9 hours (19%) → **Actual: 45m (91.7% faster)**
+- **Transcription**: 9 hours (19%) → **Actual: 25m (95.4% faster, 1 of 2 tickets complete)**
+- **Enhancements**: 4.5 hours (9%) → TICKET-012 (new)
+- **Integration**: 10 hours (21%)
+- **Deployment**: 2 hours (4%)
 
 ## Estimation vs Actual Analysis (Foundation Phase)
 
@@ -178,10 +185,11 @@ For remaining tickets, apply **experience adjustment factor**:
 - **Total: 9 hours estimated → 45m actual (91.7% reduction)**
 - **Remaining: 4h estimated for TICKET-007**
 
-#### Week 3: Transcription Services
+#### Week 3: Transcription Services & Enhancements
 - TICKET-005: OpenAI Transcription (Est: 4h, Actual: 25m) ✅ COMPLETED
 - TICKET-006: Local Transcription (5h) - *Parallel development*
-- **Total: 9 hours estimated → 25m actual (95.4% reduction for completed ticket)**
+- TICKET-012: Improved VAD with Sentence Detection (4.5h) - *Can start after TICKET-004*
+- **Total: 13.5 hours estimated → 25m actual (95.4% reduction for completed ticket)**
 
 #### Week 4: System Integration
 - TICKET-008: Main Orchestrator (6h)
