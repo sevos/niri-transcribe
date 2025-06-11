@@ -6,6 +6,7 @@ const config = require('./config');
 const AudioCaptureService = require('./services/audio-capture');
 const AudioFormatConverter = require('./utils/audio-format');
 const VoiceActivityDetector = require('./services/voice-activity-detector');
+const TranscriptionManager = require('./services/transcription/transcription-manager');
 
 // Load configuration
 let appConfig;
@@ -37,6 +38,22 @@ const audioCapture = new AudioCaptureService(appConfig, logger);
 
 // Initialize VAD service
 const vad = new VoiceActivityDetector(appConfig);
+
+// Initialize transcription service
+const transcriptionManager = new TranscriptionManager(appConfig);
+
+// Transcription event handlers
+transcriptionManager.on('transcription', (event) => {
+  logger.debug('Transcription event:', {
+    service: event.service,
+    duration: event.duration,
+    fallback: event.fallback || false
+  });
+});
+
+transcriptionManager.on('health', (health) => {
+  logger.debug('Transcription health update:', health);
+});
 
 // Audio event handlers
 audioCapture.on('started', () => {
@@ -71,7 +88,7 @@ vad.on('speechStart', (data = {}) => {
   }
 });
 
-vad.on('speechEnd', (chunk) => {
+vad.on('speechEnd', async (chunk) => {
   const reason = chunk.reason || 'silence';
   let logData = {
     reason: reason === 'max_duration' ? 'max_duration_split' : 'natural_end',
@@ -87,7 +104,21 @@ vad.on('speechEnd', (chunk) => {
     logger.debug('Speech ended - silence detected', logData);
   }
   
-  // TODO: Send chunk to transcription service (TICKET-005/006)
+  // Send chunk to transcription service
+  try {
+    const transcriptionResult = await transcriptionManager.transcribe(chunk.audio);
+    logger.info('Transcription result:', {
+      text: transcriptionResult.text,
+      language: transcriptionResult.language,
+      duration: chunk.duration,
+      audioSamples: chunk.audio.length
+    });
+    
+    // TODO: Send transcribed text to output service (TICKET-007)
+  } catch (error) {
+    logger.error('Transcription failed:', error);
+  }
+  
   if (config.isDebugEnabled()) {
     const wavBuffer = AudioFormatConverter.float32ToWav(chunk.audio, appConfig.audio.sampleRate);
     logger.debug(`Generated WAV chunk: ${wavBuffer.length} bytes`);
@@ -124,7 +155,8 @@ app.get('/health', async (req, res) => {
       },
       services: {
         audioCapture: await audioCapture.getDetailedStatus(),
-        vad: vad.getStatus()
+        vad: vad.getStatus(),
+        transcription: transcriptionManager.getMetrics()
       }
     };
     
@@ -180,6 +212,59 @@ app.get('/vad/status', (req, res) => {
   } catch (error) {
     logger.error('Failed to get VAD status:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Add transcription endpoints
+app.get('/transcription/health', async (req, res) => {
+  try {
+    const health = await transcriptionManager.checkHealth();
+    res.status(200).json(health);
+  } catch (error) {
+    logger.error('Failed to get transcription health:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/transcription/metrics', (req, res) => {
+  try {
+    const metrics = transcriptionManager.getMetrics();
+    res.status(200).json(metrics);
+  } catch (error) {
+    logger.error('Failed to get transcription metrics:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/transcription/test', express.json({ limit: '50mb' }), async (req, res) => {
+  try {
+    const { audioData, options = {} } = req.body;
+    
+    if (!audioData || !Array.isArray(audioData)) {
+      return res.status(400).json({ error: 'audioData array is required' });
+    }
+    
+    // Convert array back to Float32Array
+    const float32Data = new Float32Array(audioData);
+    
+    logger.info(`Testing transcription with ${float32Data.length} samples`);
+    
+    const result = await transcriptionManager.transcribe(float32Data, options);
+    
+    res.status(200).json({
+      success: true,
+      result: result,
+      metadata: {
+        audioSamples: float32Data.length,
+        duration: float32Data.length / (appConfig.audio.sampleRate || 16000)
+      }
+    });
+  } catch (error) {
+    logger.error('Transcription test failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
