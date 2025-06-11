@@ -160,7 +160,7 @@ curl -X POST http://localhost:3000/transcription/test \
   "success": true,
   "result": {
     "text": "",
-    "language": "en",
+    "language": "unknown",
     "confidence": 1.0
   },
   "metadata": {
@@ -202,8 +202,9 @@ curl -X POST http://localhost:3000/transcription/test \
 
 **Expected Result**:
 - Logs show "Speech detected - recording started"
-- Logs show "Speech ended - silence detected"
+- Logs show "Speech ended - silence detected" 
 - Logs show "Transcription result" with your spoken text
+- **Language field shows actual detected language (e.g., "english", "polish") not "detected"**
 - No error messages in logs
 
 #### 4.2 Multiple Speech Chunks
@@ -365,6 +366,19 @@ wait
 ## Known Issues
 - Local transcription service not implemented (TICKET-006)
 - Text output service not implemented (TICKET-007)
+
+## Language Detection Improvements (Latest Update)
+- ✅ **Fixed**: Language field now shows actual detected language from OpenAI API
+- ✅ **Fixed**: Uses `verbose_json` response format to get language information  
+- ✅ **Fixed**: No longer hardcodes "detected" as language value
+- ✅ **Expected**: Language field will show values like "english", "polish", "spanish", etc.
+
+### Multi-Language Testing
+When testing language detection, try speaking in different languages:
+- **English**: Should show `"language": "english"`
+- **Polish**: Should show `"language": "polish"`  
+- **Spanish**: Should show `"language": "spanish"`
+- **Other**: OpenAI Whisper supports 50+ languages
 
 ## Next Steps
 1. Execute all test scenarios

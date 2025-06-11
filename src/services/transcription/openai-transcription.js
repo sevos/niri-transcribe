@@ -106,9 +106,11 @@ class OpenAITranscriptionService {
       model: this.config.model || 'whisper-1',
     };
     
-    if (this.config.language) {
+    // Only set language if explicitly specified (not 'auto')
+    if (this.config.language && this.config.language !== 'auto') {
       transcriptionOptions.language = this.config.language;
     }
+    // When language is 'auto' or not specified, let Whisper auto-detect
     
     if (this.config.temperature !== undefined) {
       transcriptionOptions.temperature = this.config.temperature;
@@ -122,7 +124,8 @@ class OpenAITranscriptionService {
     if (options.responseFormat) {
       transcriptionOptions.response_format = options.responseFormat;
     } else {
-      transcriptionOptions.response_format = 'json';
+      // Use verbose_json to get language detection information
+      transcriptionOptions.response_format = 'verbose_json';
     }
 
     const response = await this.client.audio.transcriptions.create(transcriptionOptions);
@@ -135,14 +138,20 @@ class OpenAITranscriptionService {
       return {
         text: response,
         confidence: 1.0,
-        language: this.config.language || 'en'
+        language: 'unknown' // For text responses, we can't determine language
       };
+    }
+
+    // Extract language from verbose_json response
+    let detectedLanguage = 'unknown';
+    if (response.language) {
+      detectedLanguage = response.language;
     }
 
     return {
       text: response.text || '',
       confidence: response.confidence || 1.0,
-      language: response.language || this.config.language || 'en',
+      language: detectedLanguage, // Use actual detected language from API
       segments: response.segments || [],
       duration: response.duration
     };

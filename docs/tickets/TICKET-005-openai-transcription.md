@@ -8,15 +8,21 @@
 High
 
 ## Description
-Implement the OpenAI Whisper API integration for primary transcription service with error handling and retry logic.
+Implement the OpenAI Whisper API integration for primary transcription service with error handling and retry logic. The service must properly handle multiple languages through transcription (not translation) to preserve the original language of the spoken content.
+
+**Important**: This is a transcription service, not a translation service. Polish speech should result in Polish text, English speech in English text, etc. The service should use OpenAI's `/audio/transcriptions` endpoint with automatic language detection by default.
 
 ## Acceptance Criteria
-- [ ] OpenAI client configuration
-- [ ] Audio chunk transcription
-- [ ] Error handling with retry logic
-- [ ] API rate limiting
-- [ ] Response parsing and validation
-- [ ] Fallback triggering logic
+- [x] OpenAI client configuration
+- [x] Audio chunk transcription
+- [x] Error handling with retry logic
+- [x] API rate limiting
+- [x] Response parsing and validation
+- [x] Fallback triggering logic
+- [x] Proper language handling (transcription, not translation)
+- [x] Automatic language detection support
+- [x] Multi-language support (Polish, English, etc.)
+- [x] Actual detected language reporting (not hardcoded "detected")
 
 ## Technical Requirements
 
@@ -131,9 +137,11 @@ class OpenAITranscriptionService {
     formData.append('file', blob, 'audio.wav');
     formData.append('model', this.config.model || 'whisper-1');
     
-    if (this.config.language) {
+    // Language handling: support auto-detection and explicit language setting
+    if (this.config.language && this.config.language !== 'auto') {
       formData.append('language', this.config.language);
     }
+    // When language is 'auto' or not specified, let Whisper auto-detect
     
     if (this.config.temperature !== undefined) {
       formData.append('temperature', this.config.temperature.toString());
@@ -148,14 +156,27 @@ class OpenAITranscriptionService {
       formData.append('response_format', options.responseFormat);
     }
 
-    const response = await this.client.audio.transcriptions.create({
+    // Build transcription options with proper language handling
+    const transcriptionOptions = {
       file: blob,
       model: this.config.model || 'whisper-1',
-      language: this.config.language,
-      temperature: this.config.temperature,
-      prompt: options.prompt,
-      response_format: options.responseFormat || 'json'
-    });
+      response_format: options.responseFormat || 'verbose_json' // Use verbose_json for language detection
+    };
+    
+    // Only set language if explicitly specified (not 'auto')
+    if (this.config.language && this.config.language !== 'auto') {
+      transcriptionOptions.language = this.config.language;
+    }
+    
+    if (this.config.temperature !== undefined) {
+      transcriptionOptions.temperature = this.config.temperature;
+    }
+    
+    if (options.prompt) {
+      transcriptionOptions.prompt = options.prompt;
+    }
+
+    const response = await this.client.audio.transcriptions.create(transcriptionOptions);
 
     return response;
   }
@@ -165,14 +186,20 @@ class OpenAITranscriptionService {
       return {
         text: response,
         confidence: 1.0,
-        language: this.config.language || 'en'
+        language: 'unknown' // For text responses, we can't determine language
       };
+    }
+
+    // Extract language from verbose_json response
+    let detectedLanguage = 'unknown';
+    if (response.language) {
+      detectedLanguage = response.language;
     }
 
     return {
       text: response.text || '',
       confidence: response.confidence || 1.0,
-      language: response.language || this.config.language || 'en',
+      language: detectedLanguage, // Use actual detected language from API
       segments: response.segments || [],
       duration: response.duration
     };
@@ -367,22 +394,29 @@ module.exports = TranscriptionManager;
 ```
 
 ## Implementation Steps
-1. Set up OpenAI client with API key
-2. Implement audio format conversion
-3. Add request queuing and rate limiting
-4. Implement retry logic with backoff
-5. Create transcription manager for fallback
-6. Add health monitoring system
+1. ✅ Set up OpenAI client with API key
+2. ✅ Implement audio format conversion
+3. ✅ Add request queuing and rate limiting
+4. ✅ Implement retry logic with backoff
+5. ✅ Create transcription manager for fallback
+6. ✅ Add health monitoring system
+7. ✅ Fix language auto-detection to use verbose_json format
+8. ✅ Extract actual detected language from API response
 
 ## Testing Requirements
-- Mock OpenAI API responses
-- Test retry logic with failures
-- Verify rate limiting behavior
-- Test fallback mechanism
-- Validate response parsing
+- ✅ Mock OpenAI API responses
+- ✅ Test retry logic with failures
+- ✅ Verify rate limiting behavior
+- ✅ Test fallback mechanism
+- ✅ Validate response parsing
+- ✅ Test language auto-detection functionality
+- ✅ Verify actual detected language extraction
 
 ## Estimated Time
-4 hours
+4 hours (Completed)
+
+## Status
+✅ **COMPLETED** - All acceptance criteria met with additional language detection improvements
 
 ## Dependencies
 - openai (official SDK)

@@ -29,7 +29,7 @@ describe('OpenAITranscriptionService', () => {
         openai: {
           apiKey: 'test-api-key',
           model: 'whisper-1',
-          language: 'en',
+          language: 'auto',
           temperature: 0.5,
           sampleRate: 16000
         }
@@ -92,7 +92,7 @@ describe('OpenAITranscriptionService', () => {
       expect(result).toEqual({
         text: 'Hello world',
         confidence: 1.0,
-        language: 'en',
+        language: 'unknown',
         segments: [],
         duration: undefined
       });
@@ -120,7 +120,7 @@ describe('OpenAITranscriptionService', () => {
   });
 
   describe('callWhisperAPI', () => {
-    it('should call OpenAI API with correct parameters', async () => {
+    it('should call OpenAI API with correct parameters and auto language detection', async () => {
       const wavBuffer = Buffer.from('fake-wav-data');
       const options = { prompt: 'Test prompt' };
       
@@ -130,10 +130,34 @@ describe('OpenAITranscriptionService', () => {
       
       const callArgs = service.client.audio.transcriptions.create.mock.calls[0][0];
       expect(callArgs.model).toBe('whisper-1');
-      expect(callArgs.language).toBe('en');
+      expect(callArgs.language).toBeUndefined(); // Should not set language for auto-detection
       expect(callArgs.temperature).toBe(0.5);
       expect(callArgs.prompt).toBe('Test prompt');
-      expect(callArgs.response_format).toBe('json');
+      expect(callArgs.response_format).toBe('verbose_json'); // Changed to verbose_json for language detection
+    });
+
+    it('should set specific language when not auto', async () => {
+      service.config.language = 'pl'; // Polish
+      const wavBuffer = Buffer.from('fake-wav-data');
+      
+      service.client.audio.transcriptions.create.mockResolvedValue({ text: 'Test' });
+      
+      await service.callWhisperAPI(wavBuffer, {});
+      
+      const callArgs = service.client.audio.transcriptions.create.mock.calls[0][0];
+      expect(callArgs.language).toBe('pl');
+    });
+
+    it('should not set language parameter when language is auto', async () => {
+      service.config.language = 'auto';
+      const wavBuffer = Buffer.from('fake-wav-data');
+      
+      service.client.audio.transcriptions.create.mockResolvedValue({ text: 'Test' });
+      
+      await service.callWhisperAPI(wavBuffer, {});
+      
+      const callArgs = service.client.audio.transcriptions.create.mock.calls[0][0];
+      expect(callArgs.language).toBeUndefined();
     });
 
     it('should use custom response format when specified', async () => {
@@ -229,33 +253,51 @@ describe('OpenAITranscriptionService', () => {
   });
 
   describe('parseResponse', () => {
-    it('should parse string response', () => {
+    it('should parse string response with unknown language marker', () => {
       const response = 'Plain text response';
       const parsed = service.parseResponse(response);
       
       expect(parsed).toEqual({
         text: 'Plain text response',
         confidence: 1.0,
-        language: 'en'
+        language: 'unknown'
       });
     });
 
-    it('should parse JSON response', () => {
+    it('should parse JSON response with detected language from API', () => {
       const response = {
-        text: 'JSON response',
-        language: 'en',
-        segments: [{ start: 0, end: 1, text: 'JSON' }],
+        text: 'Dzień dobry',
+        language: 'polish',
+        segments: [{ start: 0, end: 1, text: 'Dzień' }],
         duration: 1.5
       };
       
       const parsed = service.parseResponse(response);
       
       expect(parsed).toEqual({
-        text: 'JSON response',
+        text: 'Dzień dobry',
         confidence: 1.0,
-        language: 'en',
-        segments: [{ start: 0, end: 1, text: 'JSON' }],
+        language: 'polish',
+        segments: [{ start: 0, end: 1, text: 'Dzień' }],
         duration: 1.5
+      });
+    });
+
+    it('should handle response without language detection', () => {
+      const response = {
+        text: 'Hello world',
+        segments: [],
+        duration: 1.0
+      };
+      
+      const parsed = service.parseResponse(response);
+      
+      expect(parsed).toEqual({
+        text: 'Hello world',
+        confidence: 1.0,
+        language: 'unknown',
+        segments: [],
+        duration: 1.0
       });
     });
 
@@ -266,7 +308,7 @@ describe('OpenAITranscriptionService', () => {
       expect(parsed).toEqual({
         text: '',
         confidence: 1.0,
-        language: 'en',
+        language: 'unknown',
         segments: [],
         duration: undefined
       });
