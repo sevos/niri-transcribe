@@ -8,9 +8,9 @@ class AudioCaptureService extends EventEmitter {
     this.logger = logger;
     this.captureProcess = null;
     this.isCapturing = false;
-    this.audioBuffer = [];
+    this.isRecording = false;
+    this.sessionBuffer = [];
     this.audioSystem = null;
-    this.bufferSize = config.audio.sampleRate * 30; // 30 seconds of audio
     this.restartCount = 0;
     this.maxRestartAttempts = 5;
   }
@@ -142,23 +142,15 @@ class AudioCaptureService extends EventEmitter {
         floatSamples[i] = samples[i] / 32768.0; // Convert to -1.0 to 1.0 range
       }
 
-      // Add to circular buffer
-      this.addToBuffer(floatSamples);
+      // Add to session buffer if recording
+      if (this.isRecording) {
+        this.sessionBuffer.push(...floatSamples);
+      }
       
-      // Emit audio data for processing
+      // Emit audio data for monitoring (optional)
       this.emit('audio', floatSamples);
     } catch (error) {
       this.logger.error('Error processing audio data:', error);
-    }
-  }
-
-  addToBuffer(samples) {
-    this.audioBuffer.push(...samples);
-    
-    // Maintain circular buffer size
-    if (this.audioBuffer.length > this.bufferSize) {
-      const excessSamples = this.audioBuffer.length - this.bufferSize;
-      this.audioBuffer.splice(0, excessSamples);
     }
   }
 
@@ -356,11 +348,45 @@ class AudioCaptureService extends EventEmitter {
     });
   }
 
-  getBufferedAudio(duration) {
-    const samplesNeeded = Math.floor(this.config.audio.sampleRate * duration);
-    const startIndex = Math.max(0, this.audioBuffer.length - samplesNeeded);
+  startRecording() {
+    if (!this.isCapturing) {
+      throw new Error('Audio capture must be started before recording');
+    }
+    if (this.isRecording) {
+      throw new Error('Recording session already in progress');
+    }
     
-    return new Float32Array(this.audioBuffer.slice(startIndex));
+    this.isRecording = true;
+    this.sessionBuffer = [];
+    this.logger.info('Recording session started');
+    this.emit('recordingStarted');
+  }
+
+  stopRecording() {
+    if (!this.isRecording) {
+      throw new Error('No recording session in progress');
+    }
+    
+    this.isRecording = false;
+    const recordedAudio = new Float32Array(this.sessionBuffer);
+    const duration = recordedAudio.length / this.config.audio.sampleRate;
+    
+    this.logger.info(`Recording session stopped: ${duration.toFixed(2)}s, ${recordedAudio.length} samples`);
+    this.emit('recordingStopped', {
+      audio: recordedAudio,
+      duration: duration,
+      sampleRate: this.config.audio.sampleRate
+    });
+    
+    return recordedAudio;
+  }
+
+  getRecordingStatus() {
+    return {
+      isRecording: this.isRecording,
+      duration: this.isRecording ? this.sessionBuffer.length / this.config.audio.sampleRate : 0,
+      samples: this.sessionBuffer.length
+    };
   }
 
   async getDefaultDevice() {
@@ -433,9 +459,10 @@ class AudioCaptureService extends EventEmitter {
     // Return synchronous status - don't resolve device asynchronously in tests
     return {
       isCapturing: this.isCapturing,
+      isRecording: this.isRecording,
       audioSystem: this.audioSystem,
-      bufferLength: this.audioBuffer.length,
-      bufferDuration: this.audioBuffer.length / this.config.audio.sampleRate,
+      sessionSamples: this.sessionBuffer.length,
+      sessionDuration: this.sessionBuffer.length / this.config.audio.sampleRate,
       restartCount: this.restartCount,
       processId: this.captureProcess ? this.captureProcess.pid : null
     };

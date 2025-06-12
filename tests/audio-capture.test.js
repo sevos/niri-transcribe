@@ -238,32 +238,46 @@ id missing, type broken`;
 
       audioCapture.processAudioData(testData);
 
-      // Check that audio buffer was updated
-      expect(audioCapture.audioBuffer.length).toBeGreaterThan(0);
+      // Mock audio capture being started
+      audioCapture.isCapturing = true;
+      
+      // Start recording to capture audio data
+      audioCapture.startRecording();
+      
+      // Process the audio data
+      audioCapture.processAudioData(testData);
+      
+      // Check that session buffer was updated
+      expect(audioCapture.sessionBuffer.length).toBeGreaterThan(0);
       
       // First sample should be 0
-      expect(audioCapture.audioBuffer[0]).toBeCloseTo(0, 5);
+      expect(audioCapture.sessionBuffer[0]).toBeCloseTo(0, 5);
       
       // Second sample should be close to 1.0
-      expect(audioCapture.audioBuffer[1]).toBeCloseTo(1.0, 3);
+      expect(audioCapture.sessionBuffer[1]).toBeCloseTo(1.0, 3);
       
       // Third sample should be close to -1.0
-      expect(audioCapture.audioBuffer[2]).toBeCloseTo(-1.0, 3);
+      expect(audioCapture.sessionBuffer[2]).toBeCloseTo(-1.0, 3);
       
       // Fourth sample should be close to 0.5
-      expect(audioCapture.audioBuffer[3]).toBeCloseTo(0.5, 3);
+      expect(audioCapture.sessionBuffer[3]).toBeCloseTo(0.5, 3);
     });
 
-    test('should maintain circular buffer size limit', () => {
-      const bufferSize = audioCapture.bufferSize;
-      const testData = Buffer.alloc(4096, 0xFF); // Large data chunk
+    test('should only buffer audio during recording sessions', () => {
+      const testData = Buffer.alloc(4096, 0xFF); // Audio data
       
-      // Fill buffer beyond capacity
-      for (let i = 0; i < 10; i++) {
-        audioCapture.processAudioData(testData);
-      }
-
-      expect(audioCapture.audioBuffer.length).toBeLessThanOrEqual(bufferSize);
+      // Process audio without recording - should not buffer
+      audioCapture.processAudioData(testData);
+      expect(audioCapture.sessionBuffer.length).toBe(0);
+      
+      // Mock audio capture being started and start recording - should buffer
+      audioCapture.isCapturing = true;
+      audioCapture.startRecording();
+      audioCapture.processAudioData(testData);
+      expect(audioCapture.sessionBuffer.length).toBeGreaterThan(0);
+      
+      // Stop recording
+      audioCapture.stopRecording();
     });
   });
 
@@ -323,44 +337,60 @@ id missing, type broken`;
       
       expect(status).toEqual({
         isCapturing: false,
+        isRecording: false,
         audioSystem: 'pipewire',
-        bufferLength: 0,
-        bufferDuration: 0,
+        sessionSamples: 0,
+        sessionDuration: 0,
         restartCount: 0,
         processId: null
       });
     });
 
-    test('should calculate buffer duration correctly', () => {
-      // Add 16000 samples (1 second at 16kHz)
-      audioCapture.audioBuffer = new Array(16000).fill(0);
+    test('should calculate session duration correctly', () => {
+      // Mock audio capture being started and start recording
+      audioCapture.isCapturing = true;
+      audioCapture.startRecording();
+      audioCapture.sessionBuffer = new Array(16000).fill(0);
       
       const status = audioCapture.getStatus();
       
-      expect(status.bufferLength).toBe(16000);
-      expect(status.bufferDuration).toBe(1);
+      expect(status.sessionSamples).toBe(16000);
+      expect(status.sessionDuration).toBe(1);
+      expect(status.isRecording).toBe(true);
+      
+      audioCapture.stopRecording();
     });
   });
 
-  describe('Buffer Management', () => {
-    test('should return correct buffered audio for duration', () => {
-      // Fill buffer with test pattern
-      audioCapture.audioBuffer = [1, 2, 3, 4, 5, 6, 7, 8];
+  describe('Recording Session Management', () => {
+    test('should start and stop recording sessions correctly', () => {
+      // Should not be recording initially
+      expect(audioCapture.isRecording).toBe(false);
       
-      const audio = audioCapture.getBufferedAudio(0.0005); // 0.5ms at 16kHz = 8 samples
+      // Mock audio capture being started and start recording
+      audioCapture.isCapturing = true;
+      audioCapture.startRecording();
+      expect(audioCapture.isRecording).toBe(true);
+      expect(audioCapture.sessionBuffer.length).toBe(0);
       
-      expect(audio).toBeInstanceOf(Float32Array);
-      expect(audio.length).toBe(8);
-      expect(Array.from(audio)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+      // Stop recording
+      const recordedAudio = audioCapture.stopRecording();
+      expect(audioCapture.isRecording).toBe(false);
+      expect(recordedAudio).toBeInstanceOf(Float32Array);
     });
 
-    test('should return partial buffer when requested duration exceeds available', () => {
-      audioCapture.audioBuffer = [1, 2, 3, 4];
+    test('should provide correct recording status', () => {
+      audioCapture.isCapturing = true;
+      audioCapture.startRecording();
+      audioCapture.sessionBuffer = [1, 2, 3, 4];
       
-      const audio = audioCapture.getBufferedAudio(1); // 1 second = 16000 samples
+      const status = audioCapture.getRecordingStatus();
       
-      expect(audio.length).toBe(4);
-      expect(Array.from(audio)).toEqual([1, 2, 3, 4]);
+      expect(status.isRecording).toBe(true);
+      expect(status.samples).toBe(4);
+      expect(status.duration).toBe(4 / 16000); // duration in seconds
+      
+      audioCapture.stopRecording();
     });
   });
 });
