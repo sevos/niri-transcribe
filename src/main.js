@@ -5,7 +5,6 @@ const winston = require('winston');
 const config = require('./config');
 const AudioCaptureService = require('./services/audio-capture');
 const AudioFormatConverter = require('./utils/audio-format');
-const VoiceActivityDetector = require('./services/voice-activity-detector');
 const TranscriptionManager = require('./services/transcription/transcription-manager');
 
 // Load configuration
@@ -33,13 +32,8 @@ const logger = winston.createLogger({
 const app = express();
 const serverConfig = config.getServerConfig();
 
-// Initialize audio capture service
+// Initialize services
 const audioCapture = new AudioCaptureService(appConfig, logger);
-
-// Initialize VAD service
-const vad = new VoiceActivityDetector(appConfig);
-
-// Initialize transcription service
 const transcriptionManager = new TranscriptionManager(appConfig);
 
 // Transcription event handlers
@@ -68,66 +62,28 @@ audioCapture.on('error', (error) => {
   logger.error('Audio capture error:', error);
 });
 
-audioCapture.on('audio', (audioData) => {
-  // Pass audio data to VAD service
-  vad.processAudio(audioData);
-  
-  if (config.isDebugEnabled()) {
-    const rms = AudioFormatConverter.calculateRMS(audioData);
-    logger.debug(`Audio data received: ${audioData.length} samples, RMS: ${rms.toFixed(4)}`);
-  }
+// Recording session event handlers
+audioCapture.on('recordingStarted', () => {
+  // Log message already handled in AudioCaptureService
 });
 
-// VAD event handlers
-vad.on('speechStart', (data = {}) => {
-  const reason = data.reason || 'detected';
-  if (reason === 'continued') {
-    logger.debug('Speech chunk split - continuing recording (max 3s duration reached)');
-  } else {
-    logger.debug('Speech detected - recording started');
-  }
-});
-
-vad.on('speechEnd', async (chunk) => {
-  const reason = chunk.reason || 'silence';
-  let logData = {
-    reason: reason === 'max_duration' ? 'max_duration_split' : 'natural_end',
-    duration: chunk.duration,
-    samples: chunk.audio.length,
-    timestamp: new Date(chunk.timestamp).toISOString(),
-    continuing: reason === 'max_duration'
-  };
+audioCapture.on('recordingStopped', async (sessionData) => {
+  logger.info(`Recording session completed: ${sessionData.duration.toFixed(2)}s, ${sessionData.audio.length} samples`);
   
-  if (reason === 'max_duration') {
-    logger.debug('Speech chunk completed - max duration reached (3s)', logData);
-  } else {
-    logger.debug('Speech ended - silence detected', logData);
-  }
-  
-  // Send chunk to transcription service
   try {
-    const transcriptionResult = await transcriptionManager.transcribe(chunk.audio);
+    // Transcribe the entire recording
+    const transcriptionResult = await transcriptionManager.transcribe(sessionData.audio);
     logger.info('Transcription result:', {
       text: transcriptionResult.text,
       language: transcriptionResult.language,
-      duration: chunk.duration,
-      audioSamples: chunk.audio.length
+      duration: sessionData.duration,
+      audioSamples: sessionData.audio.length
     });
     
     // TODO: Send transcribed text to output service (TICKET-007)
   } catch (error) {
     logger.error('Transcription failed:', error);
   }
-  
-  if (config.isDebugEnabled()) {
-    const wavBuffer = AudioFormatConverter.float32ToWav(chunk.audio, appConfig.audio.sampleRate);
-    logger.debug(`Generated WAV chunk: ${wavBuffer.length} bytes`);
-  }
-});
-
-vad.on('silenceTimeout', () => {
-  logger.info('Silence timeout reached - 10 seconds without speech');
-  // TODO: Handle silence timeout (e.g., stop recording)
 });
 
 // Health check endpoint
@@ -155,7 +111,6 @@ app.get('/health', async (req, res) => {
       },
       services: {
         audioCapture: await audioCapture.getDetailedStatus(),
-        vad: vad.getStatus(),
         transcription: transcriptionManager.getMetrics()
       }
     };
@@ -196,7 +151,6 @@ app.post('/audio/start', async (req, res) => {
 app.post('/audio/stop', async (req, res) => {
   try {
     await audioCapture.stop();
-    vad.reset(); // Reset VAD when stopping audio
     res.status(200).json({ status: 'stopped' });
   } catch (error) {
     logger.error('Failed to stop audio capture:', error);
@@ -204,13 +158,37 @@ app.post('/audio/stop', async (req, res) => {
   }
 });
 
-// Add VAD status endpoint
-app.get('/vad/status', (req, res) => {
+// Recording session endpoints
+app.post('/recording/start', async (req, res) => {
   try {
-    const status = vad.getStatus();
+    audioCapture.startRecording();
+    res.status(200).json({ status: 'recording_started' });
+  } catch (error) {
+    logger.error('Failed to start recording:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/recording/stop', async (req, res) => {
+  try {
+    const recordedAudio = audioCapture.stopRecording();
+    res.status(200).json({ 
+      status: 'recording_stopped',
+      duration: recordedAudio.length / audioCapture.config.audio.sampleRate,
+      samples: recordedAudio.length
+    });
+  } catch (error) {
+    logger.error('Failed to stop recording:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/recording/status', (req, res) => {
+  try {
+    const status = audioCapture.getRecordingStatus();
     res.status(200).json(status);
   } catch (error) {
-    logger.error('Failed to get VAD status:', error);
+    logger.error('Failed to get recording status:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -293,13 +271,11 @@ app.listen(serverConfig.port, serverConfig.host, async () => {
 process.on('SIGTERM', async () => {
   logger.info('Received SIGTERM, shutting down gracefully');
   await audioCapture.stop();
-  vad.reset();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('Received SIGINT, shutting down gracefully');
   await audioCapture.stop();
-  vad.reset();
   process.exit(0);
 });

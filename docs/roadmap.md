@@ -1,101 +1,86 @@
 # Implementation Plan and Ticket Dependencies
 
 ## Project Overview
-This document outlines the implementation strategy for the real-time transcription system, including ticket dependencies and the critical path for development.
+This document outlines the implementation strategy for the session-based dictation system, focusing on a ChatGPT-style record-then-transcribe approach.
 
-## Ticket Dependency Tree
+## **✅ ARCHITECTURE: Session-Based Dictation System**
+**Status**: Completed (TICKET-012)  
+**Approach**: Record full audio session → Transcribe complete recording → Output text
+
+## Ticket Dependency Tree (Updated)
 
 ```
-TICKET-001: Docker Infrastructure Setup (@tickets/TICKET-001-docker-infrastructure.md)
-├── TICKET-002: Configuration System
-├── TICKET-007: Text Output Service  
+TICKET-001: Docker Infrastructure Setup ✅ COMPLETED
+├── TICKET-002: Configuration System ✅ COMPLETED
+├── TICKET-007: Text Output Service (Simplified)
 └── TICKET-010: Build and Installation Scripts
 
-TICKET-002: Configuration System
-├── TICKET-005: OpenAI Transcription
-└── TICKET-006: Local Transcription
+TICKET-002: Configuration System ✅ COMPLETED
+└── TICKET-005: OpenAI Transcription ✅ COMPLETED
 
-TICKET-003: Audio Capture Service
-└── TICKET-004: VAD Implementation
+TICKET-003: Audio Capture Service ✅ COMPLETED (being simplified)
+└── TICKET-012: Dictation System Simplification
 
-TICKET-004: VAD Implementation
-├── TICKET-005: OpenAI Transcription
-├── TICKET-006: Local Transcription
-└── TICKET-008: Main Orchestrator
+TICKET-005: OpenAI Transcription ✅ COMPLETED
+└── TICKET-012: Dictation System Simplification
 
-TICKET-005: OpenAI Transcription
-└── TICKET-008: Main Orchestrator
-
-TICKET-006: Local Transcription  
-└── TICKET-008: Main Orchestrator
-
-TICKET-007: Text Output Service
-└── TICKET-008: Main Orchestrator
-
-TICKET-008: Main Orchestrator
-├── TICKET-009: Host Activation Script
-└── TICKET-011: Integration Testing
+TICKET-007: Text Output Service (Simplified)
+└── TICKET-009: Host Activation Script
 
 TICKET-009: Host Activation Script
-└── TICKET-011: Integration Testing
+└── TICKET-010: Build and Installation Scripts
 
-TICKET-010: Build and Installation Scripts
-└── TICKET-011: Integration Testing
+~~TICKET-004: VAD Implementation~~ ❌ REMOVED (over-engineered)
+~~TICKET-006: Local Transcription~~ ❌ REMOVED (future enhancement)
+~~TICKET-008: Main Orchestrator~~ ❌ REMOVED (over-engineered)
+~~TICKET-011: Integration Testing~~ ❌ REMOVED (superseded by simplified testing)
 ```
 
-## Critical Path Analysis
+## Critical Path Analysis (Updated for Simplified System)
 
-### Phase 1: Foundation (Weeks 1-2)
-**Priority: High - Core Infrastructure**
+### 🎯 **SESSION-BASED WORKFLOW**
+**User Flow**: Start Recording → Continuous Audio Capture → Stop Recording → Full Transcription → Text Output
+
+### ✅ **COMPLETED FOUNDATION** (Weeks 1-2)
+**All core infrastructure completed successfully**
 
 1. **TICKET-001: Docker Infrastructure Setup** ✅ COMPLETED (Est: 4h, Actual: 30m 1s, -87.5%)
-   - No blockers
-   - Enables all containerized development
-   - Critical for local development environment
-   - **Result**: Full Docker setup with audio/Wayland access verified
+   - Full Docker setup with audio/Wayland access verified
 
 2. **TICKET-002: Configuration System** ✅ COMPLETED (Est: 3h, Actual: 9m 28s, -94.7%)
-   - Blocked by: TICKET-001
-   - Required for all service configuration
-   - Essential for API key management
-   - **Result**: Full JSON schema validation, environment overrides, secure API key handling
+   - JSON schema validation, environment overrides, secure API key handling
 
 3. **TICKET-003: Audio Capture Service** ✅ COMPLETED (Est: 6h, Actual: 27m 50s, -92.3%)
-   - Blocked by: TICKET-001, TICKET-002
-   - Core audio functionality
-   - Required for all audio processing
-   - **Result**: Full real-time audio capture with PipeWire/PulseAudio, device discovery, format conversion
+   - Session-based audio capture with PipeWire/PulseAudio, device discovery
 
-### Phase 2: Audio Processing (Week 2)
-**Priority: High - Audio Pipeline**
+4. **TICKET-005: OpenAI Transcription** ✅ COMPLETED (Est: 4h, Actual: 25m, -89.6%)
+   - Full OpenAI Whisper API integration with transcription manager
 
-4. **TICKET-004: VAD Implementation** ✅ COMPLETED (Est: 5h, Actual: 45m, -85%)
-   - Blocked by: TICKET-003
-   - Essential for speech detection
-   - Required for chunk creation
-   - **Result**: Energy-based VAD with adaptive thresholds, 1-3s chunk generation, silence detection
+### ✅ **COMPLETED FOUNDATION** (Sessions 1-3)
+**Session-based dictation system ready for user interface**
 
-5. **TICKET-007: Text Output Service** (4 hours)
-   - Blocked by: TICKET-001
-   - Can be developed in parallel with audio services
-   - Required for text injection
+5. **TICKET-012: Session-Based Dictation System** ✅ COMPLETED (Est: 4h, Actual: 3h)
+   - Session-based recording workflow implementation
+   - Recording control API endpoints (/recording/start, /recording/stop, /recording/status)
+   - Complete session transcription (record-then-transcribe approach)
+   - Maximum recording duration limits and error handling
+   - Comprehensive QA test plan and validation
 
-### Phase 3: Transcription Services (Week 3)
-**Priority: High - Transcription Backends**
+### 📋 **REMAINING WORK**
+**Priority: Medium - User Interface**
 
-6. **TICKET-005: OpenAI Transcription** ✅ COMPLETED (Est: 4h, Actual: 25m, -89.6%)
-   - Blocked by: TICKET-002, TICKET-004
-   - Primary transcription service
-   - Can be developed in parallel with local service
-   - **Result**: Full OpenAI Whisper API integration with transcription manager orchestration
+6. **TICKET-007: Text Output Service** (Est: 3h)
+   - Wayland text injection via wtype
+   - Integration with session-based transcription results
+   - **Blockers**: None (foundation complete)
 
-7. **TICKET-006: Local Transcription** (5 hours)
-   - Blocked by: TICKET-002, TICKET-004
-   - Fallback transcription service
-   - Independent of OpenAI service
+7. **TICKET-009: Host Activation Script** (Est: 4h)
+   - User interface for system control
+   - **Blocked by**: TICKET-007
 
-### Phase 4: Integration (Week 4)
-**Priority: High - System Integration**
+8. **TICKET-010: Build and Installation Scripts** (Est: 3h)
+   - Deployment automation
+   - **Blocked by**: TICKET-001 (completed)
 
 8. **TICKET-008: Main Orchestrator** (6 hours)
    - Blocked by: All core services (003-007)

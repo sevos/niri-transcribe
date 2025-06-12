@@ -7,10 +7,8 @@ const configSchema = {
       properties: {
         sampleRate: { type: 'number', default: 16000 },
         channels: { type: 'number', default: 1 },
-        chunkDuration: { type: 'number', default: 2000 }, // ms
-        vadThreshold: { type: 'number', default: 0.01 },
-        silenceTimeout: { type: 'number', default: 10000 }, // ms
-        device: { type: 'string', default: 'default' }
+        device: { type: 'string', default: 'default' },
+        maxRecordingDuration: { type: 'number', default: 300000 } // 5 minutes max recording
       }
     },
     transcription: {

@@ -1,21 +1,21 @@
 # Niri Transcribe
 
-A MacOS-like dictation system for Linux Wayland environments, providing real-time speech-to-text transcription with immediate text input to focused windows.
+A ChatGPT-style dictation system for Linux Wayland environments, providing session-based speech-to-text transcription with immediate text input to focused windows.
 
 ## 🎯 Project Goals
 
-- **Real-time speech recognition** with immediate text injection into active applications
+- **Session-based speech recognition** with immediate text injection into active applications
 - **Wayland-native integration** for seamless Linux desktop experience  
 - **Docker-containerized deployment** for easy setup and consistent environments
 - **Multiple transcription backends** (OpenAI Whisper API, local models)
-- **Voice Activity Detection** to automatically start/stop transcription
-- **Audio pipeline optimization** with circular buffering and format conversion
+- **User-controlled recording** with start/stop session management
+- **Audio pipeline optimization** with session buffering and format conversion
 
 ## 🚧 Work in Progress
 
 This project is currently under active development. Core audio capture functionality is implemented, with transcription services and UI components in progress.
 
-**Current Status:** Audio Pipeline Ready (Tickets 001-003 complete)
+**Current Status:** Session-Based Dictation Ready (Tickets 001-005, 012 complete)
 
 ### 📖 Documentation
 - **[Implementation Roadmap](docs/roadmap.md)** - Detailed project timeline, ticket dependencies, and progress tracking with actual vs estimated completion times
@@ -25,16 +25,18 @@ This project is currently under active development. Core audio capture functiona
 
 ### ✅ Completed Features
 - Docker infrastructure with full audio stack access
-- Real-time audio capture service with PipeWire/PulseAudio support
+- Session-based audio capture service with PipeWire/PulseAudio support
 - JSON schema-based configuration system
-- Audio format conversion and circular buffering
-- REST API endpoints for device management
+- Audio format conversion and session buffering
+- REST API endpoints for device management and recording control
+- OpenAI Whisper API integration with transcription manager
+- Complete session transcription workflow
+- Comprehensive test suite (78 tests) and QA documentation
 
 ### 🔄 In Development
-- Voice Activity Detection (VAD)
-- OpenAI Whisper integration
-- Local transcription models
 - Text output and injection service
+- Host activation script for Niri integration
+- Build and installation scripts
 
 ## ⚠️ Important Disclaimer
 
