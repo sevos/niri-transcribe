@@ -64,7 +64,7 @@ audioCapture.on('error', (error) => {
 
 // Recording session event handlers
 audioCapture.on('recordingStarted', () => {
-  logger.info('Recording session started');
+  // Log message already handled in AudioCaptureService
 });
 
 audioCapture.on('recordingStopped', async (sessionData) => {
