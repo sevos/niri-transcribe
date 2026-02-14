@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "ajv": "^8.12.0",
-    "express": "^4.18.0",
+    "express": "^4.22.1",
     "node-wav": "^0.0.2",
     "openai": "^4.104.0",
     "winston": "^3.11.0"
